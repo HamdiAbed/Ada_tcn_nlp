@@ -10,17 +10,24 @@ it is the number of segments to speed up computation.
 
 The goal of PTB is to train a language model to predict the next word.
 """
+url = 'https://s3.amazonaws.com/research.metamind.io/wikitext/wikitext-2-v1.zip'
+filehandle, _ = urllib.request.urlretrieve(url)
+zip_file_object = zipfile.ZipFile(filehandle, 'r')
+cwd = os.getcwd()
+
+zip_file_object.extractall()
+data_dir = os.path.join(cwd, r'wikitext-2')
 cwd = os.getcwd()
 print('current dir, ',cwd)
 
 def data_generator(args):
     cwd = os.getcwd()
     #print('current dir, ',cwd)
-    if os.path.exists(r'"/home/hamdi/TCN/word_cnn/data/penn/penncorpus"') and not args.corpus:
-        corpus = pickle.load(open(r'/home/hamdi/TCN/word_cnn/data/penn/corpus', 'rb'))
+    if os.path.exists(os.path.join(data_dir, r"corpus")) and not args.corpus:
+        corpus = pickle.load(open(os.path.join(data_dir, r"corpus"), 'rb'))
     else:
         corpus = Corpus(args.data)
-        pickle.dump(corpus, open(r"/home/hamdi/TCN/word_cnn/data/penn/corpus", 'wb'))
+        pickle.dump(corpus, open(os.path.join(data_dir, r"corpus"), 'wb'))
     return corpus
 
 
@@ -43,13 +50,9 @@ class Corpus(object):
     def __init__(self, path):
         cwd = os.getcwd()
         self.dictionary = Dictionary()
-        train_path = os.path.join(cwd, r"/data/penn/train.txt")
-        print(train_path)
-        valid_path = os.path.join(cwd, r"/data/penn/valid.txt")
-        test_path = os.path.join(cwd, r"/data/penn/test.txt")
-        self.train = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/train.txt")
-        self.valid = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/valid.txt")
-        self.test  = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/test.txt")
+        self.train = self.tokenize(os.path.join(data_dir, r"wiki.train.tokens"))
+        self.valid = self.tokenize(os.path.join(data_dir, r"wiki.valid.tokens"))
+        self.test  = self.tokenize(os.path.join(data_dir, r"wiki.test.tokens"))
 
     def tokenize(self, path):
         """Tokenizes a text file."""

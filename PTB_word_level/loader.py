@@ -110,49 +110,15 @@ device = "cuda:0"
 #loading pre-trained model
 model_path = r"\exp\best_model_so_far.pt"
 model = torch.load(model_path)
-"""
-model_path = "model.pt"
-model = TCN(args.seq_len,
- args.emsize,
- n_words,
- num_chans,
- dropout=dropout,
- emb_dropout=emb_dropout,
- kernel_size=k_size,
- tied_weights=tied)
-"""
-#print model summary
-#print(summary(model,
-#              dtype = [torch.long],
-#              input_shape = (args.batch_size, args.seq_len, args.nhid)))
-#print('for model')
 
-#for params in model.state_dict():
-#    print(params, '\t', model.state_dict()[params].size)
 if args.cuda:
     model.to(device)
 
-# May use adaptive softmax to speed up training
 criterion = nn.CrossEntropyLoss()
 
 lr = args.lr
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
 
-#print(ckpt_load)
-"""
-print('for loaded ckpt')
-for params in ckpt_load.state_dict():
-    print(params, '\t', ckpt_load.state_dict()[params].size)
-optimizer.load_state_dict(ckpt_load['optimizer'])
-model.load_state_dict(ckpt_load['model_state_dict'])
-valid_loss_min = ckpt_load['valid_loss_min']
-start_epoch = ckpt_load['epoch']
-
-print('model= ', model)
-print('optim= ', optimizer)
-print('start epoch= ', start_epoch)
-print('valid_loss_min=  = {:.6f}'.format(valid_loss_min))
-"""
 @torch.no_grad()
 def evaluate(data_source):
     model.eval()
@@ -186,9 +152,7 @@ def train():
     total_loss = 0
     tr_loss = 0
     start_time = time.time()
-    #print('train_data shize', train_data.size(1))
-    #print('train_data size modulus seq_len', train_data.size(1) // args.seq_len - 1)
-    batch_loss = []
+
     counter= 0
     for batch_idx, i in enumerate(range(0, train_data.size(1) - args.seq_len - 1, args.validseqlen)):
         if i + args.seq_len - args.validseqlen >= train_data.size(1) - 1:
@@ -196,7 +160,7 @@ def train():
         data, targets = get_batch(train_data, i, args)
         if args.cuda == True:
             data, targets = data.to(device), targets.to(device)
-        #print('data shape', data.shape)
+
         optimizer.zero_grad()
         output = model(data)
 
@@ -207,7 +171,6 @@ def train():
         final_target = targets[:, eff_history:].contiguous().view(-1)
         final_output = output[:, eff_history:].contiguous().view(-1, n_words)
         loss = criterion(final_output, final_target)
-        #batch_loss.append(loss)
 
         loss.backward()
         if args.clip > 0:
@@ -315,4 +278,3 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     plt.savefig('losses.png')
-#sys.stdout.close()

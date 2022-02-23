@@ -2,6 +2,7 @@ import os
 import torch
 from torch.autograd import Variable
 import pickle
+import requests
 
 """
 Note: The meaning of batch_size in PTB is different from that in MNIST example. In MNIST, 
@@ -10,17 +11,31 @@ it is the number of segments to speed up computation.
 
 The goal of PTB is to train a language model to predict the next word.
 """
+URL = {
+    "train": "https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.train.txt",
+    "test": "https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.test.txt",
+    "valid": "https://raw.githubusercontent.com/wojzaremba/lstm/master/data/ptb.valid.txt",
+}
+
+train = requests.get(URL["train"], allow_redirects= True)
+valid = requests.get(URL["valid"], allow_redirects= True)
+test = requests.get(URL["test"], allow_redirects= True)
+
+open("penntrain.txt", 'wb').write(train.content)
+open("pennvalid.txt", 'wb').write(valid.content)
+open("penntest.txt", 'wb').write(test.content)
+
 cwd = os.getcwd()
 print('current dir, ',cwd)
 
 def data_generator(args):
     cwd = os.getcwd()
     #print('current dir, ',cwd)
-    if os.path.exists(r'"/home/hamdi/TCN/word_cnn/data/penn/penncorpus"') and not args.corpus:
-        corpus = pickle.load(open(r'/home/hamdi/TCN/word_cnn/data/penn/penncorpus', 'rb'))
+    if os.path.exists(os.path.join(cwd, r"penncorpus")) and not args.corpus:
+        corpus = pickle.load(open(os.path.join(cwd, r"penncorpus"), 'rb'))
     else:
         corpus = Corpus(args.data)
-        pickle.dump(corpus, open(r"/home/hamdi/TCN/word_cnn/data/penn/penncorpus", 'wb'))
+        pickle.dump(corpus, open(os.path.join(cwd, r"penncorpus"), 'wb'))
     return corpus
 
 
@@ -43,13 +58,9 @@ class Corpus(object):
     def __init__(self, path):
         cwd = os.getcwd()
         self.dictionary = Dictionary()
-        train_path = os.path.join(cwd, r"/data/penn/penntrain.txt")
-        print(train_path)
-        valid_path = os.path.join(cwd, r"/data/penn/pennvalid.txt")
-        test_path = os.path.join(cwd, r"/data/penn/penntest.txt")
-        self.train = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/penntrain.txt")
-        self.valid = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/pennvalid.txt")
-        self.test  = self.tokenize(r"/home/hamdi/TCN/word_cnn/data/penn/penntest.txt")
+        self.train = self.tokenize(r"penntrain.txt")
+        self.valid = self.tokenize(r"pennvalid.txt")
+        self.test  = self.tokenize(r"penntest.txt")
 
     def tokenize(self, path):
         """Tokenizes a text file."""

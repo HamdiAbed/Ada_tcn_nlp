@@ -7,8 +7,8 @@ from torch.autograd import Variable
 import torch.optim as optim
 import sys
 sys.path.append("../../")
-from utils_penn import *
-from utils_penn import data_generator
+from utils import *
+from utils import data_generator
 from model import *
 from model import TCN as TCN
 import pickle
@@ -16,7 +16,7 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
-CUDA_AVAILABLE_DEVICES=0
+CUDA_AVAILABLE_DEVICES=1
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
@@ -32,13 +32,13 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
 parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit (default: 100)')
-parser.add_argument('--ksize', type=int, default=3,
+parser.add_argument('--ksize', type=int, default=5,
                     help='kernel size (default: 3)')
 parser.add_argument('--data', type=str, default='./data/penn',
                     help='location of the data corpus (default: ./data/penn)')
 parser.add_argument('--emsize', type=int, default=512,
                     help='size of word embeddings (default: 600)')
-parser.add_argument('--levels', type=int, default=4,
+parser.add_argument('--levels', type=int, default=5,
                     help='# of levels (default: 4)')
 parser.add_argument('--log-interval', type=int, default=500, metavar='N',
                     help='report interval (default: 100)')
@@ -85,7 +85,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda"
+device = "cuda:1"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
@@ -146,9 +146,7 @@ def train():
     total_loss = 0
     tr_loss = 0
     start_time = time.time()
-    #print('train_data shize', train_data.size(1))
-    #print('train_data size modulus seq_len', train_data.size(1) // args.seq_len - 1)
-    batch_loss = []
+
     counter= 0
     for batch_idx, i in enumerate(range(0, train_data.size(1) - args.seq_len - 1, args.validseqlen)):
         if i + args.seq_len - args.validseqlen >= train_data.size(1) - 1:
@@ -156,7 +154,7 @@ def train():
         data, targets = get_batch(train_data, i, args)
         if args.cuda == True:
             data, targets = data.to(device), targets.to(device)
-        #print('data shape', data.shape)
+
         optimizer.zero_grad()
         output = model(data)
 
@@ -167,7 +165,6 @@ def train():
         final_target = targets[:, eff_history:].contiguous().view(-1)
         final_output = output[:, eff_history:].contiguous().view(-1, n_words)
         loss = criterion(final_output, final_target)
-        #batch_loss.append(loss)
 
         loss.backward()
         if args.clip > 0:
@@ -208,7 +205,7 @@ if __name__ == "__main__":
 
     try:
 
-        patience = 50
+        patience = 30
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train()
@@ -230,18 +227,18 @@ if __name__ == "__main__":
 
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
-                with open("ptb_exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
+                with open("\exp\exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
-            """
+
             # Anneal the learning rate if the validation loss plateaus
             if epoch > 10 and val_loss >= max(all_vloss[-5:]):
                 lr = lr / 2.
                 for param_group in optimizer.param_groups:
                     param_group['lr'] = lr
-            """
             all_vloss.append(val_loss)
+             
             if epoch > patience and val_loss >= max(all_vloss[-patience:]):
                 print('Early stopping the training as val_loss did not improve in the last {} epochs'.format(patience))
                 break
@@ -251,7 +248,7 @@ if __name__ == "__main__":
         print('Exiting from training early')
 
     # Load the best saved model.
-    with open("ptb_exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'rb') as f:
+    with open("\exp\exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'rb') as f:
         model = torch.load(f)
     
     # Run on test data.
@@ -262,9 +259,6 @@ if __name__ == "__main__":
         test_loss, math.exp(test_loss)))
     print('=' * 89)
 
-
-    
-
     ##Plotting losses
     num_eps = len(tr_loss_plot)
     plt.figure()
@@ -274,4 +268,4 @@ if __name__ == "__main__":
     plt.title('losses')
     plt.legend()
     plt.show()
-    plt.savefig("ptb_exp_bs_{}_level_{}_loss.png".format(args.batch_size, args.levels))
+    plt.savefig("\exp\exp_bs_{}_level_{}_loss.png".format(args.batch_size, args.levels))
