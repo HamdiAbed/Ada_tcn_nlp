@@ -190,15 +190,15 @@ class TemporalConvNet(nn.Module):
         self.downsamp2 = CausalConv1d(self.num_filters, self.num_filters, 1)
         self.dropout_final = nn.Dropout(dropout) 
         
-        self.mask = torch.empty(size = (num_levels - 1, num_conv_layers,self.num_filters, self.seq_len)).cuda(1)      
-        self.gaw_1 = torch.empty(size = (num_levels, num_conv_layers, self.num_filters, self.seq_len)).cuda(1)      #Gated_activation for the first conv layer
-        self.gaw_2 = torch.empty(size = (num_levels, num_conv_layers * 2, self.num_filters, self.seq_len)).cuda(1)      #Gated activation for the second conv layer
-        self.skip_mask = torch.empty(size = (num_levels,1)).cuda(1)   
+        self.mask = torch.empty(size = (num_levels - 1, num_conv_layers,self.num_filters, self.seq_len)).cuda(0)      
+        self.gaw_1 = torch.empty(size = (num_levels, num_conv_layers, self.num_filters, self.seq_len)).cuda(0)      #Gated_activation for the first conv layer
+        self.gaw_2 = torch.empty(size = (num_levels, num_conv_layers * 2, self.num_filters, self.seq_len)).cuda(0)      #Gated activation for the second conv layer
+        self.skip_mask = torch.empty(size = (num_levels,1)).cuda(0)   
         
-        self.mask = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.mask, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(1)
-        self.gaw_1 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_1, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(1)
-        self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(1)
-        self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).cuda(1)
+        self.mask = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.mask, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(0)
+        self.gaw_1 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_1, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(0)
+        self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda(0)
+        self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).cuda(0)
 
         for i in range(num_levels):
             dilation_size = 2 ** i

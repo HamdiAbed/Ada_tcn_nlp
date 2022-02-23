@@ -85,7 +85,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda:1"
+device = "cuda:0"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
