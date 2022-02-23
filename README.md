@@ -18,11 +18,11 @@ pip3 install -r requirements.txt
 - To run the code in a word-level scenario
 For PTB dataset, please use the following code:
 ```bash
-python3 -m /PTB_word_level/text_penn
+python3 /PTB_word_level/text_penn.py
 ```
 For WT2 dataset, please use the following code
 ```bash
-python3 -m /PTB_word_level/text_wt2
+python3 /PTB_word_level/text_wt2.py
 ```
 
 -to use different hyperparameters, please use the args as presented in `text_penn.py ` and `text_wt2.py`
