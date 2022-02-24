@@ -16,7 +16,6 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
-CUDA_AVAILABLE_DEVICES=1
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
@@ -85,7 +84,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda:1"
+device = "cuda"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,

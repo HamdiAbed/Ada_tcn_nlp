@@ -4,3 +4,5 @@ torch
 torchvision
 torchinfo
 matplotlib
+urllib3
+zipfile

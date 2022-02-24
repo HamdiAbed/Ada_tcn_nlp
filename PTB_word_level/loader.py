@@ -16,7 +16,6 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
-CUDA_AVAILABLE_DEVICES=0
 
 import sys
 
@@ -106,7 +105,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda:0"
+device = "cuda"
 #loading pre-trained model
 model_path = r"\exp\best_model_so_far.pt"
 model = torch.load(model_path)

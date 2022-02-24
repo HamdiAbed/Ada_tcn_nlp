@@ -2,6 +2,9 @@ import os
 import torch
 from torch.autograd import Variable
 import pickle
+import urllib 
+import zipfile
+
 
 """
 Note: The meaning of batch_size in PTB is different from that in MNIST example. In MNIST, 
@@ -88,7 +91,7 @@ def batchify(data, batch_size, args):
     # Evenly divide the data across the batch_size batches.
     data = data.view(batch_size, -1)
     if args.cuda:
-        data = data.cuda(1)
+        data = data.cuda()
     return data
 
 

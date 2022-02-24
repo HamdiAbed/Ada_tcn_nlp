@@ -16,7 +16,7 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
-CUDA_AVAILABLE_DEVICES=0
+
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 

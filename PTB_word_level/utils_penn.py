@@ -96,7 +96,7 @@ def batchify(data, batch_size, args):
     # Evenly divide the data across the batch_size batches.
     data = data.view(batch_size, -1)
     if args.cuda:
-        data = data.cuda(1)
+        data = data.cuda()
     return data
 
 
