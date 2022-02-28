@@ -30,7 +30,7 @@ parser.add_argument('--emb_dropout', type=float, default=0.25,
                     help='dropout applied to the embedded layer (default: 0.25)')
 parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='upper epoch limit (default: 100)')
 parser.add_argument('--ksize', type=int, default=3,
                     help='kernel size (default: 3)')
@@ -52,7 +52,7 @@ parser.add_argument('--tied', action='store_false',
                     help='tie the encoder-decoder weights (default: True)')
 parser.add_argument('--optim', type=str, default='RAdam',
                     help='optimizer type (default: SGD)')
-parser.add_argument('--validseqlen', type=int, default=32,
+parser.add_argument('--validseqlen', type=int, default=1,
                     help='valid sequence length (default: 40)')
 parser.add_argument('--seq_len', type=int, default=64,
                     help='total sequence length, including effective history (default: 80)')
@@ -77,7 +77,7 @@ test_data = batchify(corpus.test, eval_batch_size, args)
 
 n_words = len(corpus.dictionary)
 print('vocab size: ', n_words)
-
+words = corpus.dictionary.idx2word
 num_chans = [int(args.nhid)] * (args.levels - 1) + [args.emsize]
 print('num_chans', num_chans)
 k_size = args.ksize
@@ -90,6 +90,7 @@ model = TCN(args.seq_len,
  args.emsize,
  n_words,
  num_chans,
+ device= device,
  dropout=dropout,
  emb_dropout=emb_dropout,
  kernel_size=k_size,
@@ -107,6 +108,7 @@ if args.cuda:
 criterion = nn.CrossEntropyLoss()
 
 lr = args.lr
+#optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
 
 
@@ -128,14 +130,16 @@ def evaluate(data_source):
 
             # Discard the effective history, just like in training
             eff_history = args.seq_len - args.validseqlen
-            final_output = output[:, eff_history:].contiguous().view(-1, n_words)
-            final_target = targets[:, eff_history:].contiguous().view(-1)
+            final_output = output[:, -1:].contiguous().view(-1, n_words)
+            final_target = targets[:, -1:].contiguous().view(-1)
 
             loss = criterion(final_output, final_target)
 
             # Note that we don't add TAR loss here
-            total_loss += (data.size(1) - eff_history) * loss.item()
-            processed_data_size += data.size(1) - eff_history
+            #total_loss += (data.size(1) - eff_history) * loss.item()
+            #processed_data_size += data.size(1) - eff_history
+            total_loss += loss.item()
+            processed_data_size += 1
         return total_loss / processed_data_size
 
 def train():
@@ -145,6 +149,9 @@ def train():
     total_loss = 0
     tr_loss = 0
     start_time = time.time()
+    #print('train_data shize', train_data.size(1))
+    #print('train_data size modulus seq_len', train_data.size(1) // args.seq_len - 1)
+    batch_loss = []
     counter= 0
     for batch_idx, i in enumerate(range(0, train_data.size(1) - args.seq_len - 1, args.validseqlen)):
         if i + args.seq_len - args.validseqlen >= train_data.size(1) - 1:
@@ -152,6 +159,7 @@ def train():
         data, targets = get_batch(train_data, i, args)
         if args.cuda == True:
             data, targets = data.to(device), targets.to(device)
+        #print('data shape', data.shape)
         optimizer.zero_grad()
         output = model(data)
 
@@ -162,6 +170,7 @@ def train():
         final_target = targets[:, eff_history:].contiguous().view(-1)
         final_output = output[:, eff_history:].contiguous().view(-1, n_words)
         loss = criterion(final_output, final_target)
+        #batch_loss.append(loss)
 
         loss.backward()
         if args.clip > 0:
@@ -224,11 +233,10 @@ if __name__ == "__main__":
 
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
-                with open("ptb_exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
+                with open("new_bs{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
-            #use in case of annealing the learning rate
             """
             # Anneal the learning rate if the validation loss plateaus
             if epoch > 10 and val_loss >= max(all_vloss[-5:]):
@@ -246,7 +254,7 @@ if __name__ == "__main__":
         print('Exiting from training early')
 
     # Load the best saved model.
-    with open("ptb_exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'rb') as f:
+    with open("new_bs{}_level_{}_model.pt".format(args.batch_size, args.levels), 'rb') as f:
         model = torch.load(f)
     
     # Run on test data.

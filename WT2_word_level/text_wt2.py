@@ -17,6 +17,7 @@ from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
 
+
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
 parser.add_argument('--batch_size', type=int, default=16, metavar='N',
@@ -31,13 +32,13 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
 parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit (default: 100)')
-parser.add_argument('--ksize', type=int, default=5,
+parser.add_argument('--ksize', type=int, default=3,
                     help='kernel size (default: 3)')
-parser.add_argument('--data', type=str, default='./data/penn',
-                    help='location of the data corpus (default: ./data/penn)')
+parser.add_argument('--data', type=str, default='./wikitext-2',
+                    help='location of the data corpus (default: ./wikitext-2)')
 parser.add_argument('--emsize', type=int, default=512,
                     help='size of word embeddings (default: 600)')
-parser.add_argument('--levels', type=int, default=5,
+parser.add_argument('--levels', type=int, default=4,
                     help='# of levels (default: 4)')
 parser.add_argument('--log-interval', type=int, default=500, metavar='N',
                     help='report interval (default: 100)')
@@ -95,9 +96,9 @@ model = TCN(args.seq_len,
  tied_weights=tied)
 
 #print model summary
-#print(summary(model,
-#              dtype = [torch.long],
-#              input_shape = (args.batch_size, args.seq_len, args.nhid)))
+print(summary(model,
+              dtype = [torch.long],
+              input_shape = (args.batch_size, args.seq_len, args.nhid)))
 
 if args.cuda:
     model.to(device)
@@ -128,14 +129,16 @@ def evaluate(data_source):
 
             # Discard the effective history, just like in training
             eff_history = args.seq_len - args.validseqlen
-            final_output = output[:, eff_history:].contiguous().view(-1, n_words)
-            final_target = targets[:, eff_history:].contiguous().view(-1)
+            final_output = output[:, -1:].contiguous().view(-1, n_words)
+            final_target = targets[:, -1:].contiguous().view(-1)
 
             loss = criterion(final_output, final_target)
 
             # Note that we don't add TAR loss here
-            total_loss += (data.size(1) - eff_history) * loss.item()
-            processed_data_size += data.size(1) - eff_history
+            #total_loss += (data.size(1) - eff_history) * loss.item()
+            #processed_data_size += data.size(1) - eff_history
+            total_loss += loss.item()
+            processed_data_size += 1
         return total_loss / processed_data_size
 
 def train():
@@ -145,7 +148,9 @@ def train():
     total_loss = 0
     tr_loss = 0
     start_time = time.time()
-
+    #print('train_data shize', train_data.size(1))
+    #print('train_data size modulus seq_len', train_data.size(1) // args.seq_len - 1)
+    batch_loss = []
     counter= 0
     for batch_idx, i in enumerate(range(0, train_data.size(1) - args.seq_len - 1, args.validseqlen)):
         if i + args.seq_len - args.validseqlen >= train_data.size(1) - 1:
@@ -153,7 +158,7 @@ def train():
         data, targets = get_batch(train_data, i, args)
         if args.cuda == True:
             data, targets = data.to(device), targets.to(device)
-
+        #print('data shape', data.shape)
         optimizer.zero_grad()
         output = model(data)
 
@@ -164,6 +169,7 @@ def train():
         final_target = targets[:, eff_history:].contiguous().view(-1)
         final_output = output[:, eff_history:].contiguous().view(-1, n_words)
         loss = criterion(final_output, final_target)
+        #batch_loss.append(loss)
 
         loss.backward()
         if args.clip > 0:
@@ -257,6 +263,9 @@ if __name__ == "__main__":
     print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
         test_loss, math.exp(test_loss)))
     print('=' * 89)
+
+
+    
 
     ##Plotting losses
     num_eps = len(tr_loss_plot)

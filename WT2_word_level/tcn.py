@@ -200,6 +200,7 @@ class TemporalConvNet(nn.Module):
         self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
         self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).cuda()
 
+
         for i in range(num_levels):
             dilation_size = 2 ** i
             in_channels = num_inputs if i == 0 else num_channels[i-1]
