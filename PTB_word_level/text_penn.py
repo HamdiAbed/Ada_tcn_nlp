@@ -16,7 +16,8 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
-
+import wandb
+wandb.login()
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
@@ -60,7 +61,8 @@ parser.add_argument('--corpus', action='store_true',
                     help='force re-make the corpus (default: False)')
 args = parser.parse_args()
 
-
+wandb.init(project = "training adatcn wt2",
+           config=args)
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -112,7 +114,7 @@ lr = args.lr
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
 
 
-
+wandb.watch(model, log_freq=500)
 
 @torch.no_grad()
 def evaluate(data_source):
@@ -222,6 +224,9 @@ if __name__ == "__main__":
             val_loss_plot.append(val_loss)
             test_loss_plot.append(test_loss)
             
+            tr_ppl = math.exp(tr_loss_plot[-1])
+            val_ppl = math.exp(val_loss)
+            test_ppl = math.exp(test_loss)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
@@ -237,6 +242,14 @@ if __name__ == "__main__":
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
+                
+            wandb.log({"epoch":epoch,
+                       "tr_loss":tr_loss_plot[-1],
+                       "val_loss":val_loss,
+                       "test_loss":test_loss,
+                       "tr_ppl":tr_ppl,
+                       "val_ppl":val_ppl,
+                       "test_ppl":test_ppl})
             """
             # Anneal the learning rate if the validation loss plateaus
             if epoch > 10 and val_loss >= max(all_vloss[-5:]):

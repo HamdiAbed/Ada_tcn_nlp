@@ -16,15 +16,17 @@ from random import randint
 from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
+import wandb
 
+wandb.login()
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
-parser.add_argument('--batch_size', type=int, default=16, metavar='N',
+parser.add_argument('--batch_size', type=int, default=128, metavar='N',
                     help='batch size (default: 16)')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA (default: True)')
-parser.add_argument('--dropout', type=float, default=0.45,
+parser.add_argument('--dropout', type=float, default=0.5,
                     help='dropout applied to layers (default: 0.45)')
 parser.add_argument('--emb_dropout', type=float, default=0.25,
                     help='dropout applied to the embedded layer (default: 0.25)')
@@ -34,9 +36,9 @@ parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit (default: 100)')
 parser.add_argument('--ksize', type=int, default=3,
                     help='kernel size (default: 3)')
-parser.add_argument('--data', type=str, default='./wikitext-2',
-                    help='location of the data corpus (default: ./wikitext-2)')
-parser.add_argument('--emsize', type=int, default=512,
+parser.add_argument('--data', type=str, default='./data/penn',
+                    help='location of the data corpus (default: ./data/penn)')
+parser.add_argument('--emsize', type=int, default=256,
                     help='size of word embeddings (default: 600)')
 parser.add_argument('--levels', type=int, default=4,
                     help='# of levels (default: 4)')
@@ -44,7 +46,7 @@ parser.add_argument('--log-interval', type=int, default=500, metavar='N',
                     help='report interval (default: 100)')
 parser.add_argument('--lr', type=float, default=1e-3,
                     help='initial learning rate (default: 4)')
-parser.add_argument('--nhid', type=int, default= 512,
+parser.add_argument('--nhid', type=int, default= 256,
                     help='number of hidden units per layer (default: 600)')
 parser.add_argument('--seed', type=int, default=2322,
                     help='random seed (default: 1111)')
@@ -60,7 +62,8 @@ parser.add_argument('--corpus', action='store_true',
                     help='force re-make the corpus (default: False)')
 args = parser.parse_args()
 
-
+wandb.init(project = "training adatcn wt2",
+           config=args)
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -85,7 +88,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda"
+device = "cuda:1"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
@@ -94,11 +97,16 @@ model = TCN(args.seq_len,
  emb_dropout=emb_dropout,
  kernel_size=k_size,
  tied_weights=tied)
-
+batch_size = int(args.batch_size)
+seq_len = int(args.seq_len)
+nhid = int(args.nhid)
+"""
+model_summary = summary(model.cuda(),
+                        dtype = [torch.long],
+                        input_shape = (batch_size, seq_len, nhid))
+"""
 #print model summary
-print(summary(model,
-              dtype = [torch.long],
-              input_shape = (args.batch_size, args.seq_len, args.nhid)))
+#print(model_summary.encode('utf8'))
 
 if args.cuda:
     model.to(device)
@@ -109,10 +117,7 @@ criterion = nn.CrossEntropyLoss()
 lr = args.lr
 #optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
-
-
-
-
+wandb.watch(model, log_freq=500)
 @torch.no_grad()
 def evaluate(data_source):
     model.eval()
@@ -143,6 +148,7 @@ def evaluate(data_source):
 
 def train():
     # Turn on training mode which enables dropout.
+    
     global train_data
     model.train()
     total_loss = 0
@@ -190,6 +196,7 @@ def train():
             total_loss = 0
             start_time = time.time()
             
+            
             """
             print('sentence | target  | output ')
             print('{}  | {} | {}'.format(" ".join([words[w] for w in data[0]]),
@@ -220,6 +227,9 @@ if __name__ == "__main__":
             #train_loss_plot.append(ep_loss)
             val_loss_plot.append(val_loss)
             test_loss_plot.append(test_loss)
+            tr_ppl = math.exp(tr_loss_plot[-1])
+            val_ppl = math.exp(val_loss)
+            test_ppl = math.exp(test_loss)
             
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -229,7 +239,15 @@ if __name__ == "__main__":
                   'test ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                             test_loss, math.exp(test_loss)))
             print('-' * 89)
-
+                   
+            wandb.log({"epoch":epoch,
+                       "tr_loss":tr_loss_plot[-1],
+                       "val_loss":val_loss,
+                       "test_loss":test_loss,
+                       "tr_ppl":tr_ppl,
+                       "val_ppl":val_ppl,
+                       "test_ppl":test_ppl})
+            
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
                 with open("\exp\exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
@@ -277,3 +295,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     plt.savefig("\exp\exp_bs_{}_level_{}_loss.png".format(args.batch_size, args.levels))
+    

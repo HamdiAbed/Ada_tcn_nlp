@@ -6,3 +6,4 @@ torchinfo
 matplotlib
 urllib3
 zipfile
+wandb
