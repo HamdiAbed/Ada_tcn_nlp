@@ -17,7 +17,7 @@ from torchinfo import summary
 import os
 import matplotlib.pyplot as plt
 import wandb
-
+CUDA_LAUNCH_BLOCKING=1
 wandb.login()
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
@@ -32,7 +32,7 @@ parser.add_argument('--emb_dropout', type=float, default=0.25,
                     help='dropout applied to the embedded layer (default: 0.25)')
 parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='upper epoch limit (default: 100)')
 parser.add_argument('--ksize', type=int, default=3,
                     help='kernel size (default: 3)')
@@ -42,7 +42,7 @@ parser.add_argument('--emsize', type=int, default=256,
                     help='size of word embeddings (default: 600)')
 parser.add_argument('--levels', type=int, default=4,
                     help='# of levels (default: 4)')
-parser.add_argument('--log-interval', type=int, default=500, metavar='N',
+parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='report interval (default: 100)')
 parser.add_argument('--lr', type=float, default=1e-3,
                     help='initial learning rate (default: 4)')
@@ -88,7 +88,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda"
+device = "cuda:0"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
@@ -107,12 +107,11 @@ model_summary = summary(model.cuda(),
 """
 #print model summary
 #print(model_summary.encode('utf8'))
-
+trian_data = train_data.to(device)
+val_data = val_data.to(device)
+test_data = test_data.to(device)
 if args.cuda:
     model.to(device)
-    trian_data = train_data.to(device)
-    val_data = val_data.to(device)
-    test_data = test_data.to(device)
 
 # May use adaptive softmax to speed up training
 criterion = nn.CrossEntropyLoss()
