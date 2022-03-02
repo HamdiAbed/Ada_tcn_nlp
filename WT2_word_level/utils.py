@@ -95,7 +95,7 @@ def batchify(data, batch_size, args):
     data = data.view(batch_size, -1)
     if args.cuda:
         data = data.cuda()
-
+    return data
 
 
 def get_batch(source, i, args, seq_len=None, evaluation=False):
