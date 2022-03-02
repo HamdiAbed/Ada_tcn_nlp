@@ -105,6 +105,9 @@ model = TCN(args.seq_len,
 
 if args.cuda:
     model.to(device)
+    trian_data = train_data.to(device)
+    val_data = val_data.to(device)
+    test_data = test_data.to(device)
 
 # May use adaptive softmax to speed up training
 criterion = nn.CrossEntropyLoss()

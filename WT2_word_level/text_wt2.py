@@ -36,8 +36,8 @@ parser.add_argument('--epochs', type=int, default=500,
                     help='upper epoch limit (default: 100)')
 parser.add_argument('--ksize', type=int, default=3,
                     help='kernel size (default: 3)')
-parser.add_argument('--data', type=str, default='./data/penn',
-                    help='location of the data corpus (default: ./data/penn)')
+parser.add_argument('--data', type=str, default='./',
+                    help='location of the data corpus (default: ./)')
 parser.add_argument('--emsize', type=int, default=256,
                     help='size of word embeddings (default: 600)')
 parser.add_argument('--levels', type=int, default=4,
@@ -88,7 +88,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda:1"
+device = "cuda"
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
@@ -110,6 +110,9 @@ model_summary = summary(model.cuda(),
 
 if args.cuda:
     model.to(device)
+    trian_data = train_data.to(device)
+    val_data = val_data.to(device)
+    test_data = test_data.to(device)
 
 # May use adaptive softmax to speed up training
 criterion = nn.CrossEntropyLoss()
@@ -117,7 +120,7 @@ criterion = nn.CrossEntropyLoss()
 lr = args.lr
 #optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
-wandb.watch(model, log_freq=500)
+wandb.watch(model,criterion, log = 'gradient', log_freq=500)
 @torch.no_grad()
 def evaluate(data_source):
     model.eval()
