@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn.utils import weight_norm
 import matplotlib.pyplot as plt
 
+
 torch.set_printoptions(4, edgeitems=16 ,sci_mode=False)
 torch.autograd.set_detect_anomaly(True)
 
@@ -88,7 +89,6 @@ class SE_block(nn.Module):
         :param input_tensor: X, shape = (batch_size,  num_channels, seq_len)
         :return: output tensor
         """
-        #print('input size = ', input.size())
         batch_size,  num_channels, seq_len = input.size()
 
         # Average along each channel
@@ -101,7 +101,8 @@ class SE_block(nn.Module):
         return  out
 
 class TemporalBlock(nn.Module):
-    def __init__(self, n_inputs, n_outputs, kernel_size, level, mask, gaw_1, gaw_2, skip_mask, seq_len,stride, dilation, dropout=0.2):   ###ADATCN
+    def __init__(self, n_inputs, n_outputs, kernel_size, level, mask, gaw_1, gaw_2, skip_mask, seq_len,stride,dilation, skip = False,
+                 gated_act = False,   dropout=0.2):   ###ADATCN
     #def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, dropout=0.2):    ###TCN
         super(TemporalBlock, self).__init__()
         self.level = level
@@ -110,7 +111,8 @@ class TemporalBlock(nn.Module):
         self.gaw_2 = gaw_2
         self.skip_mask = skip_mask
         self.seq_len = seq_len
-        
+        self.skip = skip
+        self.gated_act = gated_act
         self.conv1 = weight_norm(CausalConv1d(n_inputs, n_outputs, kernel_size,
                                               stride=stride, dilation=dilation))
         #self.chomp1 = Chomp1d(padding)
@@ -148,11 +150,14 @@ class TemporalBlock(nn.Module):
 
     def forward(self, x):
         #first block
+
         y = self.conv1(x)
-        y = torch.mul(y, sparsify(self.mask[0], self.mask.shape[-1], self.nout, self.level)) if self.level > 0 else self.identity1(y)
+        y = torch.mul(y, sparsify(self.mask[0], self.mask.shape[-1], self.nout, self.level)) if self.level > 0 else self.identity1(y) 
+        #y = self.chomp1(y) #needed for baseline tcn
         y = y if self.downsample is None else self.downsample(y)
         #UNCOMMENT IF YOU WANT TO USE GATED ACTIVATIONS
-        #y = torch.mul(self.tanh1(torch.mul(y , self.gaw_1[0])) ,self.sig1(torch.mul(y , self.gaw_1[1]))) #Gated activations
+        if self.gated_act:
+            y = torch.mul(self.tanh1(torch.mul(y , self.gaw_1[0])) ,self.sig1(torch.mul(y , self.gaw_1[1]))) #Gated activations
         y = self.BN1(y)
         y = self.relu1(y)
         y = self.dropout1(y)
@@ -163,7 +168,9 @@ class TemporalBlock(nn.Module):
         #y = self.chomp2(y) #needed for baseline TCN
         y = y if self.downsample is None else self.downsample(y)
         #UNCOMMENT IF YOU WANT TO USE GATED ACTIVATIONS
-        #y = torch.mul(self.tanh1(torch.mul(y , self.gaw_2[2])) ,self.sig1(torch.mul(y , self.gaw_2[3]))) #Gated Activation
+        if self.gated_act:
+            y = torch.mul(self.tanh1(torch.mul(y , self.gaw_2[2])) ,self.sig1(torch.mul(y , self.gaw_2[3]))) #Gated Activation
+        
         y = self.BN2(y)
         y = self.relu2(y)
         out = self.dropout2(y)       
@@ -171,12 +178,15 @@ class TemporalBlock(nn.Module):
         out = self.SE_block(out)
         
         #UNCOMMENT IF YOU WANT TO USE THE SKIP CONNECTIONS, AND COMMENT THE FOLLOWING RETURN LINE
+        #return self.relu(out + res) * self.skip_mask #multiplying each block with its respective skip connection weight
         #return self.layernorm(self.relu(out + res)) * self.skip_mask #multiplying each block with its respective skip connection weight
-        return self.relu(out + res) 
-
+        if self.skip:
+            return self.relu(out + res) * self.skip_mask #multiplying each block with its respective skip connection weight
+        else:
+            return self.relu(out + res)
 
 class TemporalConvNet(nn.Module):
-    def __init__(self, seq_len, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+    def __init__(self, seq_len, num_inputs, num_channels,skip, gated_act, kernel_size=2, dropout=0.2):
         super(TemporalConvNet, self).__init__()
         self.layers = []
         num_levels = len(num_channels)
@@ -198,6 +208,7 @@ class TemporalConvNet(nn.Module):
         self.gaw_1 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_1, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
         self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
         self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).cuda()
+        
 
         for i in range(num_levels):
             dilation_size = 2 ** i
@@ -205,7 +216,7 @@ class TemporalConvNet(nn.Module):
             out_channels = num_channels[i]
 
             self.layers += [TemporalBlock(in_channels, out_channels, dilation_size *kernel_size , i, self.mask[i - 1],
-                            self.gaw_1[i], self.gaw_2[i], self.skip_mask[i][0], self.seq_len, stride=1, dilation= 1,
+                            self.gaw_1[i], self.gaw_2[i], self.skip_mask[i][0], self.seq_len, stride=1, dilation= 1,skip = skip, gated_act = gated_act,
                             dropout=dropout)]
 
         self.network = nn.Sequential(*self.layers)

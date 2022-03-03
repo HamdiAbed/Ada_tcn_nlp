@@ -60,6 +60,10 @@ parser.add_argument('--seq_len', type=int, default=64,
                     help='total sequence length, including effective history (default: 80)')
 parser.add_argument('--corpus', action='store_true',
                     help='force re-make the corpus (default: False)')
+parser.add_argument('--skip', action='store_true',
+                    help = 'use skip_connection (default: store_true)')
+parser.add_argument('--gated_activation', action='store_true',
+                    help = 'use gated_activation (default: store_true)')
 args = parser.parse_args()
 
 wandb.init(project = "training adatcn wt2",
@@ -89,12 +93,17 @@ emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
 device = "cuda:0"
+skip = args.skip
+gated_act = args.gated_activation
+#print('skip is, ',skip)
 model = TCN(args.seq_len,
  args.emsize,
  n_words,
  num_chans,
  dropout=dropout,
  emb_dropout=emb_dropout,
+ skip = skip,
+ gated_act = gated_act,
  kernel_size=k_size,
  tied_weights=tied)
 batch_size = int(args.batch_size)
