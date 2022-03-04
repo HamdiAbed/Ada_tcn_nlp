@@ -63,9 +63,12 @@ parser.add_argument('--skip', action='store_true',
                     help = 'use skip_connection (default: store_true)')
 parser.add_argument('--gated_activation', action='store_true',
                     help = 'use gated_activation (default: store_true)')
+parser.add_argument('--project', type=str, default='ada_tcn_ptb'
+                    help = 'set the project name from command line (default: store_true)')
 args = parser.parse_args()
 
-wandb.init(project = "training adatcn wt2",
+project = args.project
+wandb.init(project = project,
            config=args)
 
 # Set the random seed manually for reproducibility.
