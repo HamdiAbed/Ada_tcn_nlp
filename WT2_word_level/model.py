@@ -6,7 +6,7 @@ from tcn import TemporalConvNet
 
 class TCN(nn.Module):
 
-    def __init__(self,seq_len, input_size, output_size, num_channels,skip, gated_act,
+    def __init__(self,seq_len, input_size, output_size, num_channels,skip, gated_act,device,
                  kernel_size=2, dropout=0.3, emb_dropout=0.1, tied_weights=False):
         super(TCN, self).__init__()
         self.seq_len = seq_len
