@@ -186,7 +186,7 @@ class TemporalBlock(nn.Module):
             return self.relu(out + res)
 
 class TemporalConvNet(nn.Module):
-    def __init__(self, seq_len, num_inputs, num_channels,skip, gated_act, kernel_size=2, dropout=0.2):
+    def __init__(self, seq_len, num_inputs, num_channels,skip, gated_act,device, kernel_size=2, dropout=0.2):
         super(TemporalConvNet, self).__init__()
         self.layers = []
         num_levels = len(num_channels)
@@ -199,15 +199,15 @@ class TemporalConvNet(nn.Module):
         self.downsamp2 = CausalConv1d(self.num_filters, self.num_filters, 1)
         self.dropout_final = nn.Dropout(dropout) 
         
-        self.mask = torch.empty(size = (num_levels - 1, num_conv_layers,self.num_filters, self.seq_len)).cuda()      
-        self.gaw_1 = torch.empty(size = (num_levels, num_conv_layers, self.num_filters, self.seq_len)).cuda()      #Gated_activation for the first conv layer
-        self.gaw_2 = torch.empty(size = (num_levels, num_conv_layers * 2, self.num_filters, self.seq_len)).cuda()      #Gated activation for the second conv layer
-        self.skip_mask = torch.empty(size = (num_levels,1)).cuda()   
+        self.mask = torch.empty(size = (num_levels - 1, num_conv_layers,self.num_filters, self.seq_len)).to(device)   
+        self.gaw_1 = torch.empty(size = (num_levels, num_conv_layers, self.num_filters, self.seq_len)).to(device)      #Gated_activation for the first conv layer
+        self.gaw_2 = torch.empty(size = (num_levels, num_conv_layers * 2, self.num_filters, self.seq_len)).to(device)      #Gated activation for the second conv layer
+        self.skip_mask = torch.empty(size = (num_levels,1)).to(device)   
         
-        self.mask = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.mask, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
-        self.gaw_1 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_1, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
-        self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).cuda()
-        self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).cuda()
+        self.mask = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.mask, mode='fan_in', nonlinearity='relu'), requires_grad = True).to(device)
+        self.gaw_1 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_1, mode='fan_in', nonlinearity='relu'), requires_grad = True).to(device)
+        self.gaw_2 = torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.gaw_2, mode='fan_in', nonlinearity='relu'), requires_grad = True).to(device)
+        self.skip_mask= torch.nn.parameter.Parameter(nn.init.kaiming_uniform_(self.skip_mask, mode = 'fan_in' ,nonlinearity='relu'), requires_grad = True).to(device)
         
 
         for i in range(num_levels):

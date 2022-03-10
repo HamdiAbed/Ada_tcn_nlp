@@ -63,8 +63,8 @@ parser.add_argument('--skip', action='store_true',
                     help = 'use skip_connection (default: store_true)')
 parser.add_argument('--gated_activation', action='store_true',
                     help = 'use gated_activation (default: store_true)')
-parser.add_argument('--project', type=str, default='ada_tcn_ptb'
-                    help = 'set the project name from command line (default: store_true)')
+parser.add_argument('--project', type=str, default='ada_tcn_ptb',
+                    help = 'set the project name from command line (default: ada_tcn_ptb)')
 args = parser.parse_args()
 
 project = args.project
@@ -95,7 +95,7 @@ dropout = args.dropout
 emb_dropout = args.emb_dropout
 tied = args.tied
 print('args.emsize' , args.emsize)
-device = "cuda:0"
+device = "cuda"
 skip = args.skip
 gated_act = args.gated_activation
 #print('skip is, ',skip)
@@ -107,6 +107,7 @@ model = TCN(args.seq_len,
  emb_dropout=emb_dropout,
  skip = skip,
  gated_act = gated_act,
+ device = device,
  kernel_size=k_size,
  tied_weights=tied)
 #print model summary

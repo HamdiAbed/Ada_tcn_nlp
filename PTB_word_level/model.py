@@ -6,13 +6,13 @@ from tcn import TemporalConvNet
 
 class TCN(nn.Module):
 
-    def __init__(self,seq_len, input_size, output_size, num_channels,skip, gated_act,
+    def __init__(self,seq_len, input_size, output_size, num_channels,skip, gated_act,device,
                  kernel_size=2, dropout=0.3, emb_dropout=0.1, tied_weights=False):
         super(TCN, self).__init__()
         self.seq_len = seq_len
         self.encoder = nn.Embedding(output_size, input_size)
 
-        self.tcn = TemporalConvNet(self.seq_len, input_size, num_channels, skip, gated_act, kernel_size, dropout=dropout)
+        self.tcn = TemporalConvNet(self.seq_len, input_size, num_channels, skip, gated_act,device, kernel_size, dropout=dropout)
 
         self.decoder = nn.Linear(num_channels[-1], output_size)
         if tied_weights:
