@@ -226,6 +226,7 @@ def train():
     tr_loss_plot.append(tr_loss / counter)
 
 if __name__ == "__main__":
+    skip_status = "skip" if args.skip else "no_skip"
     best_vloss = 1e8
 
     tr_loss_plot = []
@@ -269,7 +270,7 @@ if __name__ == "__main__":
             
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
-                with open("\exp\exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'wb') as f:
+                with open("\exp\exp_bs_{}_level_{}_model_{}.pt".format(args.batch_size, args.levels, skip_status), 'wb') as f:
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
@@ -290,7 +291,7 @@ if __name__ == "__main__":
         print('Exiting from training early')
 
     # Load the best saved model.
-    with open("\exp\exp_bs_{}_level_{}_model.pt".format(args.batch_size, args.levels), 'rb') as f:
+    with open("\exp\exp_bs_{}_level_{}_model_{}.pt".format(args.batch_size, args.levels, skip_status), 'rb') as f:
         model = torch.load(f)
     
     # Run on test data.
@@ -313,5 +314,5 @@ if __name__ == "__main__":
     plt.title('losses')
     plt.legend()
     plt.show()
-    plt.savefig("\exp\exp_bs_{}_level_{}_loss.png".format(args.batch_size, args.levels))
+    plt.savefig("\exp\exp_bs_{}_level_{}_loss_{}.png".format(args.batch_size, args.levels, skip_status))
     
