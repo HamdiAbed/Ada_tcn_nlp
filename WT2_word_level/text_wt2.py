@@ -1,6 +1,7 @@
 import argparse
 import time
 import math
+from xml.dom.minidom import Entity
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -70,7 +71,8 @@ args = parser.parse_args()
 
 project = args.project
 wandb.init(project = project,
-           config=args)
+           config=args,
+           entity = 'ada_tcn_nlp')
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)

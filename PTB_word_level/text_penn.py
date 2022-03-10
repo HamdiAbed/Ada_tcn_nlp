@@ -69,7 +69,8 @@ args = parser.parse_args()
 
 project = args.project
 wandb.init(project = project,
-           config=args)
+           config=args,
+           entity = 'ada_tcn_nlp')
 
 # Set the random seed manually for reproducibility.
 torch.manual_seed(args.seed)
@@ -127,7 +128,7 @@ lr = args.lr
 optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
 
 
-wandb.watch(model, log_freq=500)
+wandb.watch(model, criterion, log_freq=500)
 
 @torch.no_grad()
 def evaluate(data_source):
