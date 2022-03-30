@@ -81,6 +81,8 @@ model = TCN(args.emsize, n_words, num_chans, dropout=dropout, emb_dropout=emb_dr
 if args.cuda:
     model.cuda()
 
+device = 'cuda'
+
 # May use adaptive softmax to speed up training
 criterion = nn.CrossEntropyLoss()
 
