@@ -152,7 +152,7 @@ def train():
         optimizer.step()
 
         total_loss += loss.item()
-        tr_loss_tot += loss.item
+        tr_loss_tot += loss.item()
         counter += 1
         if batch_idx % args.log_interval == 0 and batch_idx > 0:
             cur_loss = total_loss / args.log_interval
