@@ -11,7 +11,8 @@ from utils import *
 from model import *
 import pickle
 from random import randint
-
+import wandb
+wandb.login()
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
@@ -60,6 +61,10 @@ torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     if not args.cuda:
         print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+project = "ada_tcn_baseline"
+wandb.init(project = project,
+           config=args,
+           entity = 'ada_tcn_nlp')
 
 print(args)
 corpus = data_generator(args)
@@ -89,7 +94,7 @@ criterion = nn.CrossEntropyLoss()
 lr = args.lr
 optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
 
-
+wandb.watch(model,criterion, log = 'gradient', log_freq=500)
 @torch.no_grad()
 def evaluate(data_source):
     model.eval()
@@ -124,6 +129,8 @@ def train():
     model.train()
     total_loss = 0
     start_time = time.time()
+    counter = 0
+    tr_loss_tot = 0
     for batch_idx, i in enumerate(range(0, train_data.size(1) - 1, args.validseqlen)):
         if i + args.seq_len - args.validseqlen >= train_data.size(1) - 1:
             continue
@@ -145,7 +152,8 @@ def train():
         optimizer.step()
 
         total_loss += loss.item()
-
+        tr_loss_tot += loss.item
+        counter += 1
         if batch_idx % args.log_interval == 0 and batch_idx > 0:
             cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
@@ -155,7 +163,7 @@ def train():
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
-
+    tr_loss_plot.append(tr_loss_tot/counter)
 
 if __name__ == "__main__":
     best_vloss = 1e8
@@ -163,12 +171,19 @@ if __name__ == "__main__":
 
     # At any point you can hit Ctrl + C to break out of training early.
     try:
+        tr_loss_plot = []
+        val_loss_plot = []
+        test_loss_plot = []
         all_vloss = []
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
             train()
             val_loss = evaluate(val_data)
             test_loss = evaluate(test_data)
+            
+            tr_ppl = math.exp(tr_loss_plot[-1])
+            val_ppl = math.exp(val_loss)
+            test_ppl = math.exp(test_loss)
 
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -204,7 +219,14 @@ if __name__ == "__main__":
                       'test ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                                 test_loss, math.exp(test_loss)))
                 break
-
+            
+            wandb.log({"epoch":epoch,
+                       "tr_loss":tr_loss_plot[-1],
+                       "val_loss":val_loss,
+                       "test_loss":test_loss,
+                       "tr_ppl":tr_ppl,
+                       "val_ppl":val_ppl,
+                       "test_ppl":test_ppl})
     except KeyboardInterrupt:
         print('-' * 89)
         print('Exiting from training early')
