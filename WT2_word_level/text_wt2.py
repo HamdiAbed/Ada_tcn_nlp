@@ -23,7 +23,7 @@ wandb.login()
 
 parser = argparse.ArgumentParser(description='Sequence Modeling - Word-level Language Modeling')
 
-parser.add_argument('--batch_size', type=int, default=128, metavar='N',
+parser.add_argument('--batch_size', type=int, default=16, metavar='N',
                     help='batch size (default: 16)')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA (default: True)')
@@ -35,29 +35,29 @@ parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
 parser.add_argument('--epochs', type=int, default=5000,
                     help='upper epoch limit (default: 100)')
-parser.add_argument('--ksize', type=int, default=3,
+parser.add_argument('--ksize', type=int, default=5,
                     help='kernel size (default: 3)')
 parser.add_argument('--data', type=str, default='./',
                     help='location of the data corpus (default: ./)')
-parser.add_argument('--emsize', type=int, default=256,
+parser.add_argument('--emsize', type=int, default=512,
                     help='size of word embeddings (default: 600)')
-parser.add_argument('--levels', type=int, default=4,
+parser.add_argument('--levels', type=int, default=5,
                     help='# of levels (default: 4)')
 parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='report interval (default: 100)')
-parser.add_argument('--lr', type=float, default=1e-3,
+parser.add_argument('--lr', type=float, default=4.0,
                     help='initial learning rate (default: 4)')
-parser.add_argument('--nhid', type=int, default= 256,
+parser.add_argument('--nhid', type=int, default= 512,
                     help='number of hidden units per layer (default: 600)')
 parser.add_argument('--seed', type=int, default=2322,
                     help='random seed (default: 1111)')
 parser.add_argument('--tied', action='store_false',
                     help='tie the encoder-decoder weights (default: True)')
-parser.add_argument('--optim', type=str, default='RAdam',
+parser.add_argument('--optim', type=str, default='SGD',
                     help='optimizer type (default: SGD)')
 parser.add_argument('--validseqlen', type=int, default=32,
                     help='valid sequence length (default: 40)')
-parser.add_argument('--seq_len', type=int, default=64,
+parser.add_argument('--seq_len', type=int, default=128,
                     help='total sequence length, including effective history (default: 80)')
 parser.add_argument('--corpus', action='store_true',
                     help='force re-make the corpus (default: False)')
@@ -134,8 +134,8 @@ if args.cuda:
 criterion = nn.CrossEntropyLoss()
 
 lr = args.lr
-#optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
-optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
+optimizer = getattr(optim, args.optim)(model.parameters(), lr=lr)
+#optimizer = torch.optim.RAdam(model.parameters(), lr=args.lr, eps = 1e-3)
 wandb.watch(model,criterion, log = 'gradient', log_freq=500)
 @torch.no_grad()
 def evaluate(data_source):
@@ -270,7 +270,7 @@ if __name__ == "__main__":
             
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
-                with open("\exp\exp_bs_{}_level_{}_model_{}.pt".format(args.batch_size, args.levels, skip_status), 'wb') as f:
+                with open("\exp\exp_bs_{}_level_{}_model_{}_latest.pt".format(args.batch_size, args.levels, skip_status), 'wb') as f:
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         print('Exiting from training early')
 
     # Load the best saved model.
-    with open("\exp\exp_bs_{}_level_{}_model_{}.pt".format(args.batch_size, args.levels, skip_status), 'rb') as f:
+    with open("\exp\exp_bs_{}_level_{}_model_{}_latest.pt".format(args.batch_size, args.levels, skip_status), 'rb') as f:
         model = torch.load(f)
     
     # Run on test data.

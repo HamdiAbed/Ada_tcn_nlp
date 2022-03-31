@@ -20,29 +20,29 @@ parser.add_argument('--batch_size', type=int, default=16, metavar='N',
                     help='batch size (default: 16)')
 parser.add_argument('--cuda', action='store_false',
                     help='use CUDA (default: True)')
-parser.add_argument('--dropout', type=float, default=0.45,
+parser.add_argument('--dropout', type=float, default=0.5,
                     help='dropout applied to layers (default: 0.45)')
 parser.add_argument('--emb_dropout', type=float, default=0.25,
                     help='dropout applied to the embedded layer (default: 0.25)')
-parser.add_argument('--clip', type=float, default=0.35,
+parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clip, -1 means no clip (default: 0.35)')
-parser.add_argument('--epochs', type=int, default=500,
+parser.add_argument('--epochs', type=int, default=5000,
                     help='upper epoch limit (default: 100)')
-parser.add_argument('--ksize', type=int, default=3,
+parser.add_argument('--ksize', type=int, default=5,
                     help='kernel size (default: 3)')
-parser.add_argument('--data', type=str, default='./data/penn',
-                    help='location of the data corpus (default: ./data/penn)')
+parser.add_argument('--data', type=str, default='./',
+                    help='location of the data corpus (default: ./)')
 parser.add_argument('--emsize', type=int, default=512,
                     help='size of word embeddings (default: 600)')
-parser.add_argument('--levels', type=int, default=4,
+parser.add_argument('--levels', type=int, default=5,
                     help='# of levels (default: 4)')
-parser.add_argument('--log-interval', type=int, default=100, metavar='N',
+parser.add_argument('--log-interval', type=int, default=1, metavar='N',
                     help='report interval (default: 100)')
-parser.add_argument('--lr', type=float, default=4,
+parser.add_argument('--lr', type=float, default=4.0,
                     help='initial learning rate (default: 4)')
-parser.add_argument('--nhid', type=int, default=512,
+parser.add_argument('--nhid', type=int, default= 512,
                     help='number of hidden units per layer (default: 600)')
-parser.add_argument('--seed', type=int, default=1111,
+parser.add_argument('--seed', type=int, default=2322,
                     help='random seed (default: 1111)')
 parser.add_argument('--tied', action='store_false',
                     help='tie the encoder-decoder weights (default: True)')
@@ -50,10 +50,18 @@ parser.add_argument('--optim', type=str, default='SGD',
                     help='optimizer type (default: SGD)')
 parser.add_argument('--validseqlen', type=int, default=32,
                     help='valid sequence length (default: 40)')
-parser.add_argument('--seq_len', type=int, default=64,
+parser.add_argument('--seq_len', type=int, default=128,
                     help='total sequence length, including effective history (default: 80)')
 parser.add_argument('--corpus', action='store_true',
                     help='force re-make the corpus (default: False)')
+parser.add_argument('--skip', action='store_true',
+                    help = 'use skip_connection (default: store_true)')
+parser.add_argument('--gated_activation', action='store_true',
+                    help = 'use gated_activation (default: store_true)')
+parser.add_argument('--project', type=str, default='ada_tcn_wt2',
+                    help = 'set the project name from command line (default: ada_tcn_wt2)')
+parser.add_argument('--device', type=str, default='cuda',
+                    help = 'set the project name from command line (default: cuda)')
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -196,7 +204,7 @@ if __name__ == "__main__":
 
             # Save the model if the validation loss is the best we've seen so far.
             if val_loss < best_vloss:
-                with open("model.pt", 'wb') as f:
+                with open("model_wiki.pt", 'wb') as f:
                     print('Save model!\n')
                     torch.save(model, f)
                 best_vloss = val_loss
@@ -232,7 +240,7 @@ if __name__ == "__main__":
         print('Exiting from training early')
 
     # Load the best saved model.
-    with open("model.pt", 'rb') as f:
+    with open("model_wiki.pt", 'rb') as f:
         model = torch.load(f)
 
     # Run on test data.
